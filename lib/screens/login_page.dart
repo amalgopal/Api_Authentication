@@ -1,61 +1,100 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
-import 'package:login_api_authentication/function/api_function.dart';
-import 'package:login_api_authentication/screens/home_page.dart';
-import 'login_service.dart';
+import 'package:login_api_authentication/services/user_auth_service.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool visibility = true;
+  final _loginKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _userNameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Login Page'),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
+      body: Form(
+        key: _loginKey,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
+            TextFormField(
+              controller: _userNameController,
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return "Enter a valid Username";
+                }
+                return null;
+              },
+              decoration: const InputDecoration(
+                hintText: "User Name",
+              ),
             ),
-            TextField(
+            const SizedBox(
+              height: 10,
+            ),
+            TextFormField(
+              obscureText: visibility,
               controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Password'),
-              obscureText: true,
+              validator: (value) {
+                if (value!.isEmpty) {
+                  return 'Enter a valid password';
+                }
+                return null;
+              },
+              decoration: InputDecoration(
+                hintText: 'Password',
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      visibility = !visibility;
+                    });
+                  },
+                  icon: visibility
+                      ? const Icon(Icons.visibility_off)
+                      : const Icon(Icons.visibility),
+                ),
+              ),
             ),
-            SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                String username = _usernameController.text;
-                String password = _passwordController.text;
-                bool isLoggedIn = await login(username, password);
-                if (isLoggedIn) {
-                  // Navigate to the next page or show a success message
-print("islogin$isLoggedIn");                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=>HomePage()));
-                } else {
-                  // Show an error message
-                  print("islogin$isLoggedIn");
+                if (_loginKey.currentState!.validate()) {
+                  final authService = AuthService();
+                  final userName = _userNameController.text;
+                  final password = _passwordController.text;
+                  
+
+                  try {
+                    final userData = await authService.loginFunction(userName, password);
+                    if (userData!=null) {
+                      log("userdata ${userData.token}");
+                    } else {
+                      log("Login failed");
+                    }
+                  } catch (e) {
+                    log("Error during login: $e");
+                  }
                 }
               },
-              child: Text('Login'),
-            ),
+              child: const Text("Login"),
+            )
           ],
         ),
       ),
     );
   }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: LoginPage(),
-  ));
 }
